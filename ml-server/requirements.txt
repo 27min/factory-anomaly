@@ -1,0 +1,4 @@
+# 런타임 (추론 서버, Docker 이미지에 포함)
+numpy==2.4.6
+pandas==3.0.6
+scikit-learn==1.9.1

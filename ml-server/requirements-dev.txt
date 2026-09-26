@@ -1,0 +1,7 @@
+# 노트북 / 분석용 (로컬 전용)
+-r requirements.txt
+matplotlib==3.11.2
+seaborn==0.13.2
+jupyter==1.1.1
+ipykernel==7.3.0
+nbconvert==7.17.1
