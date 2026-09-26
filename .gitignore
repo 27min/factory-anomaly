@@ -1,0 +1,26 @@
+# ===== OS / Editor =====
+.DS_Store
+.idea/
+*.iml
+out/
+.vscode/
+
+# ===== Secrets =====
+.env
+.env.*
+!.env.example
+
+# ===== Java / Gradle (backend) =====
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.log
+
+# ===== Python (ml-server, simulator) =====
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
