@@ -57,3 +57,15 @@
 - **Lombok**: 사용. JPA 엔티티는 record로 만들 수 없어 보일러플레이트가 많다.
   단, 엔티티에는 `@Getter`, `@NoArgsConstructor(access = PROTECTED)` 정도만 쓰고 `@Setter`, `@Data`는 쓰지 않는다 (무분별한 상태 변경과 `equals/hashCode` 문제 방지).
   DTO는 Java record를 쓴다.
+
+## D-007. DB 설정 방식: application.yml + Flyway + 초기화 컨테이너 (2026-09-29)
+
+- **설정 파일**: `application.yml` (선택지: yml / properties). 설정이 계층적으로 늘어나도(DB, JPA, 엔진 선택) 읽기 쉽다.
+- **스키마 관리**: Flyway + `ddl-auto: validate` (선택지: Flyway / `ddl-auto=update`).
+  DDL을 직접 써서 SQL Server 타입과 인덱스를 의도대로 정하고, 변경 이력을 파일로 남긴다. JPA는 엔티티와 스키마가 맞는지만 검사한다.
+  Boot 4에서는 `spring-boot-starter-flyway`와 DB별 모듈 `flyway-sqlserver`가 필요하다.
+- **DB 생성**: compose의 `db-init` 컨테이너 (선택지: 초기화 컨테이너 / 수동 생성).
+  SQL Server 이미지는 환경변수로 DB를 만들어주지 않는다. `db`가 healthy가 되면 `sqlcmd`로 `CREATE DATABASE`를 한 번 실행하고 종료한다 (이미 있으면 건너뜀).
+- **비밀값**: 레포 루트 `.env` (git 제외, 예시는 `.env.example`). compose는 `.env`를 자동으로 읽고,
+  Spring은 `spring.config.import: optional:file:../.env[.properties]`로 같은 파일을 읽는다 → 비밀번호를 한 곳에서만 관리.
+- **트레이드오프**: 로컬 개발 편의를 위해 앱이 `sa` 계정으로 접속한다. 운영이라면 앱 전용 계정과 최소 권한이 필요하다.

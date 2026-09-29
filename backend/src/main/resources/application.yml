@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: factory-anomaly
+
+  config:
+    # 레포 루트의 .env를 읽는다 (backend/ 또는 루트 어디서 실행해도 동작하도록 두 경로 모두 지정)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+
+  datasource:
+    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:factory_anomaly};encrypt=true;trustServerCertificate=true
+    username: ${DB_USERNAME:sa}
+    password: ${MSSQL_SA_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # 스키마는 Flyway가 만들고, JPA는 엔티티와 일치하는지만 검사한다
+
+  flyway:
+    locations: classpath:db/migration
