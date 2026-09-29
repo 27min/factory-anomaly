@@ -69,3 +69,20 @@
 - **비밀값**: 레포 루트 `.env` (git 제외, 예시는 `.env.example`). compose는 `.env`를 자동으로 읽고,
   Spring은 `spring.config.import: optional:file:../.env[.properties]`로 같은 파일을 읽는다 → 비밀번호를 한 곳에서만 관리.
 - **트레이드오프**: 로컬 개발 편의를 위해 앱이 `sa` 계정으로 접속한다. 운영이라면 앱 전용 계정과 최소 권한이 필요하다.
+
+## D-008. 엔티티 / 스키마 설계 (2026-09-29)
+
+- **제품 타입 위치**: `equipment`가 아니라 `sensor_reading.product_type` (선택지: 측정값에 둠 / 설비에 고정).
+  데이터에서 제품 타입은 행마다 다르다. 제품 타입은 "그 순간 가공 중인 제품의 등급"이므로 측정의 속성으로 본다.
+  설비에 고정하면 시뮬레이터가 타입별로 행을 나눠 보내야 해서 원본 분포(L 60% / M 30% / H 10%)를 재생하기 어렵다.
+- **정답 라벨**: `machine_failure`, `twf`, `hdf`, `pwf`, `osf`, `rnf`를 각각 BIT 컬럼으로, NULL 허용 (선택지: 유형별 컬럼 / 대표 유형 하나).
+  여러 유형이 동시에 발생한 24행을 손실 없이 저장한다. 현장에서는 사후에 채워지는 값이라 NULL을 허용한다.
+  JPA에서는 `@Embeddable record FailureLabels`로 묶는다.
+- **설비 등록**: Flyway `V2`로 5대(EQ-01~05)를 미리 등록하고, 등록되지 않은 설비의 측정값은 거부한다 (선택지: 미리 등록 / 자동 생성).
+- **기술 기본값**: ID는 `BIGINT IDENTITY`, 시간은 `Instant` ↔ `DATETIMEOFFSET(6)`(UTC), enum은 문자열 저장, 패키지는 도메인별(equipment / reading / decision / alert).
+- **추가한 것**
+  - `sensor_reading.source_udi`: 원본 CSV의 UDI. 벤치마크에서 `data/split.csv`와 연결해 test 행만 집계하기 위함.
+  - `decision (reading_id, engine)` 유니크: 같은 측정값을 같은 엔진이 두 번 판정해 중복 저장되는 것을 막는다.
+  - `alert.equipment_id`: `decision → reading → equipment`로도 찾을 수 있지만 설비별 알람 조회가 잦아 직접 참조한다.
+- **미정**: `decision.category`는 우선 단일 값. 룰 엔진은 여러 조건이 동시에 맞을 수 있으므로 Phase 3에서 다시 정한다 (바뀌면 새 마이그레이션 추가).
+- **메모**: Hibernate는 `length = 1` 문자열을 `CHAR(1)`로 기대한다. 처음에 `VARCHAR(1)`로 만들었다가 `ddl-auto: validate`가 불일치를 잡아냈다.

@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class FactoryAnomalyApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(FactoryAnomalyApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(FactoryAnomalyApplication.class, args);
+    }
 
 }
