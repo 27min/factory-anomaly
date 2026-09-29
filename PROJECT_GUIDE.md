@@ -44,8 +44,8 @@ Spring Boot 백엔드 포트폴리오 프로젝트야.
 
 | 영역 | 기술 |
 |---|---|
-| 백엔드 | Java 17, Spring Boot 3.x, Spring Data JPA, Gradle |
-| DB | MS-SQL (Docker) ※ 맥 M칩이면 Azure SQL Edge 이미지 또는 PostgreSQL 대체 검토 |
+| 백엔드 | Java 17, Spring Boot 4.1.x, Spring Data JPA, Gradle (Groovy DSL) |
+| DB | SQL Server 2022 (Docker) ※ 맥 M칩은 Docker Desktop의 Rosetta 에뮬레이션 사용 (`docs/decisions.md` D-002) |
 | ML 서버 | Python 3.11, FastAPI, scikit-learn / LightGBM |
 | 시뮬레이터 | Python (requests) |
 | 대시보드 | **미정** — Thymeleaf / React / Grafana 중 Phase 4 시작 전 결정 |

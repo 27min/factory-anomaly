@@ -44,3 +44,16 @@
 - **이유**: 세 엔진을 같은 테스트셋으로 비교하고(원칙 3), ML이 테스트셋을 학습에 쓰지 않도록 ML 학습 전에 분할을 파일로 고정한다.
 - **산출물**: `data/split.csv` (`udi`, `split`), 생성 스크립트 `ml-server/scripts/make_split.py`
 - **트레이드오프**: test 고장이 68건뿐이라 재현율 1건 차이가 약 1.5%p다. 결과 해석 시 전체 데이터 수치를 함께 본다.
+
+## D-006. 백엔드 프로젝트 기본 구성 (2026-09-29)
+
+- **Spring Boot**: 4.1.1 (선택지: 4.x 최신 / 3.5.x로 내려서 사용).
+  처음에는 가이드 기준인 3.5.x로 정했으나, 3.5의 OSS 지원이 끝나 start.spring.io에서 선택할 수 없었다.
+  보안 패치가 계속 나오는 버전을 쓰기 위해 4.x로 변경했고, start.spring.io 기본값인 4.1.1을 그대로 쓴다. Java 17은 그대로 지원된다.
+- **Gradle**: 9.7.1 (Wrapper, start.spring.io 생성값)
+  3.x 대비 달라진 점(starter 이름 일부 변경, Jackson 3 등)은 작업하면서 이 항목에 추가한다.
+- **빌드 스크립트**: Gradle Groovy DSL `build.gradle` (선택지: Groovy / Kotlin DSL). 국내 자료와 예시 대부분이 Groovy다.
+- **패키지**: `io.github.min27.factoryanomaly`. GitHub 계정(`27min`) 기반이며, Java 패키지는 숫자로 시작할 수 없어 `min27`로 조정했다.
+- **Lombok**: 사용. JPA 엔티티는 record로 만들 수 없어 보일러플레이트가 많다.
+  단, 엔티티에는 `@Getter`, `@NoArgsConstructor(access = PROTECTED)` 정도만 쓰고 `@Setter`, `@Data`는 쓰지 않는다 (무분별한 상태 변경과 `equals/hashCode` 문제 방지).
+  DTO는 Java record를 쓴다.
