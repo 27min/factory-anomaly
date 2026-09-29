@@ -9,6 +9,13 @@
 - **받은 날짜**: 2026-09-26 (원본은 수정하지 않음)
 - **SHA-256**: `dc6630cd9b1f0f853922fad78a1b6436570d3f1ec863f1dd5c4340ac56bc8a8e`
 
+## split.csv
+
+- 모든 엔진을 같은 조건으로 비교하기 위한 고정 train/test 분할 (`docs/decisions.md` D-005)
+- 컬럼: `udi`(원본 UDI), `split`(`train` / `test`)
+- test 2,000행(고장 68건), train 8,000행(고장 271건). `machineFailure` 기준 층화, seed 42
+- 재생성: `ml-server/.venv/bin/python ml-server/scripts/make_split.py` (다시 실행해도 같은 결과)
+
 ## 기본 정보 (다운로드 직후 확인)
 
 - 10,000행, 14컬럼, 빈 값 없음
