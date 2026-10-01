@@ -3,9 +3,13 @@ package io.github.min27.factoryanomaly.reading;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import io.github.min27.factoryanomaly.decision.Decision;
+import io.github.min27.factoryanomaly.decision.DecisionRepository;
+import io.github.min27.factoryanomaly.decision.FailureType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,7 +24,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 요청 → 파생변수 계산 → 실제 SQL Server 저장까지 한 번에 확인한다. 각 테스트는 롤백된다. */
+/** 요청 → 파생변수 계산 → 판정 → 실제 SQL Server 저장까지 한 번에 확인한다. 각 테스트는 롤백된다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -40,6 +44,7 @@ class ReadingApiIntegrationTest {
 
     @Autowired MockMvcTester mvc;
     @Autowired SensorReadingRepository readingRepository;
+    @Autowired DecisionRepository decisionRepository;
 
     private static long idFromLocation(MvcTestResult result) {
         String location = result.getResponse().getHeader("Location");
@@ -74,6 +79,36 @@ class ReadingApiIntegrationTest {
         assertThat(mvc.get().uri("/api/readings/" + id))
                 .hasStatusOk()
                 .bodyJson().extractingPath("$.equipmentCode").isEqualTo("EQ-03");
+    }
+
+    @Test
+    void 측정값마다_룰_엔진_판정을_저장하고_응답에_담는다() {
+        // AI4I UDI 70: PWF(9700 W > 9000)와 OSF(12548.7 > 11000)가 동시에 맞음 → 대표 유형 PWF (D-011)
+        String body = """
+                {"equipmentCode":"EQ-03","productType":"L",
+                 "airTemp":298.9,"processTemp":309.0,"rotSpeed":1410,"torque":65.7,"toolWear":191}
+                """;
+
+        var result = mvc.post().uri("/api/readings").contentType(MediaType.APPLICATION_JSON).content(body).exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+        assertThat(result).bodyJson().extractingPath("$.decisions[0].engine").isEqualTo("rule");
+        assertThat(result).bodyJson().extractingPath("$.decisions[0].category").isEqualTo("PWF");
+        long id = idFromLocation(result);
+
+        List<Decision> saved = decisionRepository.findByReadingIdOrderByEngine(id);
+        assertThat(saved).singleElement().satisfies(d -> {
+            assertThat(d.getEngine()).isEqualTo("rule");
+            assertThat(d.isAnomaly()).isTrue();
+            assertThat(d.getSeverity()).isEqualTo(90);
+            assertThat(d.getCategory()).isEqualTo(FailureType.PWF);
+            assertThat(d.getConfidence()).isEqualTo(1.0);
+            assertThat(d.getLatencyMs()).isNotNegative();
+            assertThat(d.getDecidedAt()).isEqualTo(NOW);
+        });
+
+        assertThat(mvc.get().uri("/api/readings/" + id))
+                .bodyJson().extractingPath("$.decisions[0].category").isEqualTo("PWF");
     }
 
     @Test

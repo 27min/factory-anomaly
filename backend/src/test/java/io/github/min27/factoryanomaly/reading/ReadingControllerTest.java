@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import io.github.min27.factoryanomaly.common.ReadingNotFoundException;
 import io.github.min27.factoryanomaly.common.UnknownEquipmentException;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -39,7 +40,7 @@ class ReadingControllerTest {
     @Test
     void 정상_요청은_201과_Location을_돌려준다() {
         given(readingService.ingest(any())).willReturn(new ReadingResponse(
-                7L, "EQ-01", ProductType.M, 10.5, 6951.59, 0.0, Instant.parse("2026-09-29T00:00:00Z")));
+                7L, "EQ-01", ProductType.M, 10.5, 6951.59, 0.0, Instant.parse("2026-09-29T00:00:00Z"), List.of()));
 
         assertThat(post(VALID))
                 .hasStatus(HttpStatus.CREATED)
@@ -84,7 +85,7 @@ class ReadingControllerTest {
     void 데이터셋_범위를_벗어나도_물리적으로_가능하면_받는다() {
         // 데이터셋 최대 회전수는 2886 rpm이지만, 이상 여부는 판정 엔진이 판단한다
         given(readingService.ingest(any())).willReturn(new ReadingResponse(
-                1L, "EQ-01", ProductType.M, 10.5, 0, 0, Instant.EPOCH));
+                1L, "EQ-01", ProductType.M, 10.5, 0, 0, Instant.EPOCH, List.of()));
 
         assertThat(post(VALID.replace("1551", "5000"))).hasStatus(HttpStatus.CREATED);
     }
