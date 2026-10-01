@@ -20,3 +20,9 @@ spring:
 
   flyway:
     locations: classpath:db/migration
+
+engine:
+  rule:
+    # 1차 값. Phase 4 알람 임계값과 함께 확정한다 (D-004)
+    failure-severity: 90 # HDF·PWF·OSF 조건 충족
+    warning-severity: 40 # TWF 위험 구간(공구마모 200분 이상) 진입
