@@ -103,7 +103,7 @@ class ReadingApiIntegrationTest {
             assertThat(d.getSeverity()).isEqualTo(90);
             assertThat(d.getCategory()).isEqualTo(FailureType.PWF);
             assertThat(d.getConfidence()).isEqualTo(1.0);
-            assertThat(d.getLatencyMs()).isNotNegative();
+            assertThat(d.getLatencyUs()).isNotNegative();
             assertThat(d.getDecidedAt()).isEqualTo(NOW);
         });
 

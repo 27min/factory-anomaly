@@ -43,7 +43,7 @@ public class DecisionService {
                 continue;
             }
             // 응답시간은 엔진 밖에서 같은 구간(decide 호출 전후)으로 잰다 (D-011)
-            long latencyMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            long latencyUs = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
 
             saved.add(decisionRepository.save(Decision.builder()
                     .reading(reading)
@@ -52,7 +52,7 @@ public class DecisionService {
                     .severity(result.severity())
                     .category(result.category())
                     .confidence(result.confidence())
-                    .latencyMs(latencyMs)
+                    .latencyUs(latencyUs)
                     .decidedAt(Instant.now(clock))
                     .build()));
         }

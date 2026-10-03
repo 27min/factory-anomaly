@@ -81,7 +81,7 @@ class DecisionServiceTest {
             }
         };
 
-        assertThat(service(slow).decide(reading, state).get(0).getLatencyMs()).isGreaterThanOrEqualTo(30);
+        assertThat(service(slow).decide(reading, state).get(0).getLatencyUs()).isGreaterThanOrEqualTo(30_000);
     }
 
     @Test

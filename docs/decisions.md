@@ -151,3 +151,11 @@
 - **실행 엔진**: 지금은 등록된 모든 `DecisionEngine` Bean을 이름 순서로 실행한다. 설정값으로 엔진을 고르는 기능은 Phase 3 후반에 추가한다.
 - **응답**: `POST /api/readings`와 `GET /api/readings/{id}` 응답에 `decisions` 배열을 추가했다.
 - **검증**: `EngineFailureIntegrationTest`가 항상 실패하는 엔진을 끼워 넣고, 실제 DB에 측정값과 룰 판정이 커밋되는지 확인한다.
+
+## D-014. 응답시간 단위: 마이크로초 (2026-10-01)
+
+- **선택지**: 마이크로초로 변경 / 밀리초 유지하고 "1ms 미만"으로 표기
+- **결정**: `decision.latency_ms` → `latency_us` (Flyway `V3`, 기존 값은 ×1000), 측정은 `TimeUnit.NANOSECONDS.toMicros`
+- **이유**: 룰 엔진은 1ms 안에 끝나 밀리초로는 항상 0이 저장됐다. 응답시간 비교가 이 프로젝트의 핵심 지표라
+  "0ms"가 아니라 실제 값으로 엔진 간 차이를 보여야 한다. 로컬 측정: 룰 엔진 200건 평균 13µs (첫 요청들은 JIT 워밍업으로 수백 µs).
+- **트레이드오프**: 가이드 4.2·4.3의 `latencyMs` / `latency_ms` 표기와 달라진다. 이 항목과 D-011이 기준이다.

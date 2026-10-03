@@ -63,7 +63,7 @@ class PersistenceMappingTest {
         Decision decision = decisionRepository.save(Decision.builder()
                 .reading(reading).engine("rule")
                 .anomaly(true).severity(90).category(FailureType.OSF).confidence(1.0)
-                .latencyMs(3).decidedAt(now)
+                .latencyUs(3_000).decidedAt(now)
                 .build());
 
         Alert alert = alertRepository.save(Alert.open(decision, eq, now));

@@ -8,12 +8,12 @@ public record DecisionResponse(
         double severity,
         FailureType category,
         double confidence,
-        long latencyMs,
+        long latencyUs,
         Instant decidedAt
 ) {
     public static DecisionResponse from(Decision d) {
         return new DecisionResponse(
                 d.getEngine(), d.isAnomaly(), d.getSeverity(), d.getCategory(),
-                d.getConfidence(), d.getLatencyMs(), d.getDecidedAt());
+                d.getConfidence(), d.getLatencyUs(), d.getDecidedAt());
     }
 }

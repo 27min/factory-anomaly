@@ -44,21 +44,21 @@ public class Decision {
 
     private double confidence;    // 0~1
 
-    private long latencyMs;
+    private long latencyUs;     // 마이크로초 (D-014)
 
     @Column(nullable = false)
     private Instant decidedAt;
 
     @Builder
     private Decision(SensorReading reading, String engine, boolean anomaly, double severity,
-                     FailureType category, double confidence, long latencyMs, Instant decidedAt) {
+                     FailureType category, double confidence, long latencyUs, Instant decidedAt) {
         this.reading = reading;
         this.engine = engine;
         this.anomaly = anomaly;
         this.severity = severity;
         this.category = category;
         this.confidence = confidence;
-        this.latencyMs = latencyMs;
+        this.latencyUs = latencyUs;
         this.decidedAt = decidedAt;
     }
 }
