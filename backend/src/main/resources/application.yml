@@ -31,3 +31,7 @@ engine:
     base-url: http://localhost:8000
     connect-timeout: 300ms
     read-timeout: 1s
+  jev:
+    # 연동 구조만 준비됨. API 스펙·키 확보 전에는 켜면 시작이 실패한다 (D-018)
+    enabled: false
+    api-key: ${JEV_API_KEY:}

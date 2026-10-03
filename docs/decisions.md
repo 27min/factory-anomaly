@@ -221,3 +221,15 @@
 - **응답 검증**: ml-server 응답이 `DecisionResult` 불변식을 어기면(예: anomaly=true인데 category=NORMAL) 저장하지 않고 `INVALID_RESPONSE`로 기록한다.
 - **테스트**: JDK 내장 `HttpServer`로 ml-server를 흉내 내 정상 / 지연(TIMEOUT) / 서버 다운(CONNECTION) / 4xx·5xx / 잘못된 응답을 실제 네트워크로 확인한다.
   `MlServerDownIntegrationTest`는 ML 엔진을 켠 채 비어 있는 포트를 가리키게 해, 수집 201 + 룰 판정 저장 + ML `CONNECTION` 실패 기록을 실제 DB로 확인한다.
+
+## D-018. JevEngine: 연동 구조만 준비 (2026-10-03)
+
+- **선택지**: 구조만 두고 켜면 시작 실패 / 가정한 API 형식으로 호출 코드까지 작성 / 설정과 문서만
+- **결정**: `JevEngine`·`JevEngineProperties`(enabled, base-url, api-key, 타임아웃)와 조건부 Bean 등록까지만 만든다.
+  API 호출은 구현하지 않고, `engine.jev.enabled=true`로 켜면 애플리케이션 시작이 실패한다 (키가 없으면 키 누락, 있으면 미구현 메시지).
+- **이유**: API 스펙과 키가 없는 상태에서 형식을 가정해 코드를 쓰면, 검증되지 않은 코드가 "연동된 것처럼" 보인다 (원칙 1).
+  켜도 매 요청마다 실패가 쌓이는 대신 시작 시점에 이유를 알 수 있다. Strategy 구조에 엔진을 추가하는 자리는 코드로 보여줄 수 있다.
+- **키 관리**: 레포 루트 `.env`의 `JEV_API_KEY` → `engine.jev.api-key` (D-007과 같은 방식). `JevEngineProperties.toString()`은 키를 가린다.
+- **표기**: README·벤치마크에는 "Jev 연동 구조 준비 완료 (API 미연동)"로만 적는다.
+- **연동할 때 할 일**: `decide()`를 MlEngine과 같은 방식(RestClient, 타임아웃, 실패를 `EngineException`으로 분류)으로 구현하고,
+  Jev 질문 3종(예/아니오, 점수, 분류)을 `anomaly` / `severity` / `category`에 대응시킨다. 타임아웃(현재 1s / 3s)은 그때 다시 정한다.
