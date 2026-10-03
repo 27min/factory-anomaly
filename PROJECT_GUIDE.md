@@ -169,31 +169,31 @@ factory-anomaly/
 ## 5. 단계별 작업 계획
 
 ### Phase 1 — 환경 세팅 + 데이터 분석 (1주차)
-- [ ] 노트북에 JDK 17, IntelliJ, Docker Desktop, Python 3.11 설치 확인
-- [ ] GitHub 레포 생성, 위 폴더 구조 만들기, .gitignore 작성
-- [ ] `data/`에 AI4I CSV 배치
-- [ ] `ml-server/notebooks/01_eda.ipynb`: 분포, 결측치, 고장 비율, 제품 타입별 차이 확인
-- [ ] 파생변수 3종 계산 후 고장 유형별로 분리되는지 시각화로 검증
-- [ ] 룰 엔진 로직을 노트북에서 먼저 구현하고 정밀도/재현율 측정
+- [x] 노트북에 JDK 17, IntelliJ, Docker Desktop, Python 3.11 설치 확인
+- [x] GitHub 레포 생성, 위 폴더 구조 만들기, .gitignore 작성
+- [x] `data/`에 AI4I CSV 배치
+- [x] `ml-server/notebooks/01_eda.ipynb`: 분포, 결측치, 고장 비율, 제품 타입별 차이 확인
+- [x] 파생변수 3종 계산 후 고장 유형별로 분리되는지 시각화로 검증
+- [x] 룰 엔진 로직을 노트북에서 먼저 구현하고 정밀도/재현율 측정
 - **완료 기준**: 파생변수가 고장 유형과 연결된다는 근거 그래프 + 룰 엔진 1차 성능 수치
 
 ### Phase 2 — 백엔드 골격 (2주차)
-- [ ] Spring Boot 프로젝트 생성 (Web, JPA, Validation, MS-SQL Driver)
-- [ ] docker-compose로 MS-SQL 컨테이너 실행, 연결 확인
-- [ ] 엔티티 4종 + Repository 작성
-- [ ] `POST /api/readings` 수집 API + 입력값 검증
-- [ ] StateBuilder 구현 + 단위 테스트 (파생변수 계산값 검증)
-- [ ] 시뮬레이터: CSV를 읽어 설비 5대 × 1초 간격으로 전송
+- [x] Spring Boot 프로젝트 생성 (Web, JPA, Validation, MS-SQL Driver)
+- [x] docker-compose로 MS-SQL 컨테이너 실행, 연결 확인
+- [x] 엔티티 4종 + Repository 작성
+- [x] `POST /api/readings` 수집 API + 입력값 검증
+- [x] StateBuilder 구현 + 단위 테스트 (파생변수 계산값 검증)
+- [x] 시뮬레이터: CSV를 읽어 설비 5대 × 1초 간격으로 전송
 - **완료 기준**: 시뮬레이터를 켜면 DB에 측정값과 파생변수가 쌓임
 
 ### Phase 3 — 판정 엔진 (3주차)
-- [ ] DecisionEngine 인터페이스, DecisionResult 정의
-- [ ] RuleEngine 구현 + 단위 테스트 (각 고장 조건 경계값 테스트)
-- [ ] ml-server: 학습 노트북 작성 (불균형 처리: class_weight 또는 SMOTE 비교), 모델 저장
-- [ ] ml-server: FastAPI `POST /predict` 엔드포인트
-- [ ] MlEngine 구현 (HTTP 호출, 타임아웃과 실패 시 처리 포함)
-- [ ] JevEngine 뼈대만 작성 (키 없으면 비활성화)
-- [ ] 판정 결과와 응답시간을 decision 테이블에 저장
+- [x] DecisionEngine 인터페이스, DecisionResult 정의
+- [x] RuleEngine 구현 + 단위 테스트 (각 고장 조건 경계값 테스트)
+- [x] ml-server: 학습 노트북 작성 (불균형 처리: class_weight 또는 SMOTE 비교), 모델 저장
+- [x] ml-server: FastAPI `POST /predict` 엔드포인트
+- [x] MlEngine 구현 (HTTP 호출, 타임아웃과 실패 시 처리 포함)
+- [x] JevEngine 뼈대만 작성 (키 없으면 비활성화)
+- [x] 판정 결과와 응답시간을 decision 테이블에 저장
 - **완료 기준**: 설정값만 바꿔 엔진 전환 가능, 모든 판정이 DB에 기록됨
 
 ### Phase 4 — 알람 + 대시보드 (4주차)
