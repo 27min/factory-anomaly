@@ -1,5 +1,6 @@
 package io.github.min27.factoryanomaly.decision.ml;
 
+import io.github.min27.factoryanomaly.decision.ConditionalOnActiveEngine;
 import io.github.min27.factoryanomaly.decision.DecisionEngine;
 import io.github.min27.factoryanomaly.decision.DecisionResult;
 import io.github.min27.factoryanomaly.decision.EngineException;
@@ -9,7 +10,6 @@ import io.github.min27.factoryanomaly.state.SensorState;
 import io.github.min27.factoryanomaly.state.SensorValues;
 import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpTimeoutException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.core.NestedExceptionUtils;
@@ -26,7 +26,7 @@ import org.springframework.web.client.RestClientResponseException;
  * 실패는 이유를 분류한 {@link EngineException}으로 던지고 재시도하지 않는다 (D-017).
  */
 @Component
-@ConditionalOnProperty(prefix = "engine.ml", name = "enabled", havingValue = "true")
+@ConditionalOnActiveEngine("ml")
 public class MlEngine implements DecisionEngine {
 
     private final RestClient client;

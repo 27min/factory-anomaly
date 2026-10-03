@@ -73,7 +73,7 @@ class MlEngineTest {
     private MlEngine engine(Duration readTimeout) {
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
         return new MlEngine(RestClient.builder(),
-                new MlEngineProperties(true, baseUrl, Duration.ofMillis(300), readTimeout));
+                new MlEngineProperties(baseUrl, Duration.ofMillis(300), readTimeout));
     }
 
     private MlEngine engine() {

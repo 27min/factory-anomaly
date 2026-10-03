@@ -25,15 +25,15 @@ class JevEngineTest {
     }
 
     @Test
-    void 키_없이_켜면_시작이_실패한다() {
-        runner.withPropertyValues("engine.jev.enabled=true")
+    void 키_없이_active에_넣으면_시작이_실패한다() {
+        runner.withPropertyValues("engine.active=jev")
                 .run(ctx -> assertThat(ctx).hasFailed()
                         .getFailure().rootCause().hasMessageContaining("JEV_API_KEY is empty"));
     }
 
     @Test
     void 키가_있어도_구현_전이라_시작이_실패한다() {
-        runner.withPropertyValues("engine.jev.enabled=true", "engine.jev.api-key=secret-key-123")
+        runner.withPropertyValues("engine.active=jev", "engine.jev.api-key=secret-key-123")
                 .run(ctx -> assertThat(ctx).hasFailed()
                         .getFailure().rootCause()
                         .hasMessageContaining("not implemented yet")
@@ -42,7 +42,7 @@ class JevEngineTest {
 
     @Test
     void 설정을_출력해도_키가_보이지_않는다() {
-        JevEngineProperties properties = new JevEngineProperties(true, null, "secret-key-123", null, null);
+        JevEngineProperties properties = new JevEngineProperties(null, "secret-key-123", null, null);
 
         assertThat(properties.toString()).doesNotContain("secret-key-123").contains("apiKey=****");
     }

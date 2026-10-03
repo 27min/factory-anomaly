@@ -34,7 +34,7 @@ class MlServerDownIntegrationTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             unusedPort = socket.getLocalPort();
         }
-        registry.add("engine.ml.enabled", () -> "true");
+        registry.add("engine.active", () -> "rule,ml");
         registry.add("engine.ml.base-url", () -> "http://127.0.0.1:" + unusedPort);
     }
 

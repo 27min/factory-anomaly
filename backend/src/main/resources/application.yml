@@ -22,16 +22,19 @@ spring:
     locations: classpath:db/migration
 
 engine:
+  # 실행할 엔진 목록. 여기 있는 엔진만 등록되고 측정값마다 순차 실행된다. 벤치마크는 비교할 엔진을 모두 나열한다 (D-019)
+  #   예) 룰만: rule / 룰 + ML: rule, ml   (실행 시 --engine.active=rule,ml 로 바꿀 수 있다)
+  active: rule
+  # 알람·대시보드의 기준 엔진 (Phase 4에서 사용). active에 포함되어야 한다
+  primary: rule
   rule:
     # 1차 값. Phase 4 알람 임계값과 함께 확정한다 (D-004)
     failure-severity: 90 # HDF·PWF·OSF 조건 충족
     warning-severity: 40 # TWF 위험 구간(공구마모 200분 이상) 진입
   ml:
-    enabled: false # true면 ml-server를 호출하는 MlEngine을 등록한다 (D-017)
     base-url: http://localhost:8000
     connect-timeout: 300ms
     read-timeout: 1s
   jev:
-    # 연동 구조만 준비됨. API 스펙·키 확보 전에는 켜면 시작이 실패한다 (D-018)
-    enabled: false
+    # 연동 구조만 준비됨. API 스펙·키 확보 전에는 active에 넣으면 시작이 실패한다 (D-018)
     api-key: ${JEV_API_KEY:}

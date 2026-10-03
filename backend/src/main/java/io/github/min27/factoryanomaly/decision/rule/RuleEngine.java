@@ -1,5 +1,6 @@
 package io.github.min27.factoryanomaly.decision.rule;
 
+import io.github.min27.factoryanomaly.decision.ConditionalOnActiveEngine;
 import io.github.min27.factoryanomaly.decision.DecisionEngine;
 import io.github.min27.factoryanomaly.decision.DecisionResult;
 import io.github.min27.factoryanomaly.decision.FailureType;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  * TWF는 200~240분 구간에서 무작위로 발생하므로 "위험 구간 진입" 경고로만 판정한다 (D-004).
  */
 @Component
+@ConditionalOnActiveEngine("rule")
 @RequiredArgsConstructor
 public class RuleEngine implements DecisionEngine {
 

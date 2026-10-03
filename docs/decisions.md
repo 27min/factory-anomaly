@@ -233,3 +233,17 @@
 - **표기**: README·벤치마크에는 "Jev 연동 구조 준비 완료 (API 미연동)"로만 적는다.
 - **연동할 때 할 일**: `decide()`를 MlEngine과 같은 방식(RestClient, 타임아웃, 실패를 `EngineException`으로 분류)으로 구현하고,
   Jev 질문 3종(예/아니오, 점수, 분류)을 `anomaly` / `severity` / `category`에 대응시킨다. 타임아웃(현재 1s / 3s)은 그때 다시 정한다.
+
+## D-019. 엔진 선택과 벤치마크 모드 (2026-10-03)
+
+- **설정 구조**: 실행 목록 `engine.active` (선택지: 실행 목록 / mode(single·benchmark) + 엔진별 enabled / 엔진별 enabled 유지).
+  `active`에 있는 엔진만 Bean으로 등록하고(`@ConditionalOnActiveEngine`), 측정값마다 모두 실행한다. 벤치마크 모드는 따로 없고 비교할 엔진을 모두 나열한다.
+  - 예: 룰만 `active: rule`(기본값) / 룰 + ML `--engine.active=rule,ml`
+  - D-017·D-018의 엔진별 `enabled` 플래그는 없앴다. mode와 enabled가 따로 놀면 "켜져 있는데 실행 안 됨" 같은 조합이 생기고, 룰 엔진을 끌 방법도 없었다
+- **대표 엔진**: `engine.primary` (기본 rule). 지금은 `active`에 포함되는지만 검사하고, Phase 4에서 알람·대시보드의 기준으로 쓴다
+  (선택지: 지금 설정만 정의 / Phase 4에서 정의). 벤치마크로 엔진이 여러 개 돌아도 알람은 한 기준으로만 나가게 한다.
+- **실행 방식**: 순차, 이름 순서 (선택지: 순차 / 병렬). 엔진끼리 CPU·네트워크를 동시에 다투지 않아 엔진별 응답시간이 서로 오염되지 않는다.
+  트레이드오프: 수집 API 응답시간이 엔진 시간의 합이 된다 (현재 ML 약 7ms + 룰 수십 µs).
+- **시작 시점 검증**: 알 수 없는 이름, 중복, 빈 목록, `active`에 없는 `primary`는 설정 바인딩 단계에서 거부한다 (`EngineProperties`).
+  `ActiveEnginesVerifier`가 `active`의 엔진이 모두 등록되었는지 확인해, 등록 조건이 어긋나 일부 엔진이 조용히 빠지는 것을 막는다.
+  `jev`를 넣으면 D-018대로 시작이 실패한다.

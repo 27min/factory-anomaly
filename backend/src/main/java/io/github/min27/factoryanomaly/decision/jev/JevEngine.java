@@ -1,11 +1,11 @@
 package io.github.min27.factoryanomaly.decision.jev;
 
+import io.github.min27.factoryanomaly.decision.ConditionalOnActiveEngine;
 import io.github.min27.factoryanomaly.decision.DecisionEngine;
 import io.github.min27.factoryanomaly.decision.DecisionResult;
 import io.github.min27.factoryanomaly.decision.EngineException;
 import io.github.min27.factoryanomaly.decision.FailureReason;
 import io.github.min27.factoryanomaly.state.SensorState;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,16 +18,16 @@ import org.springframework.stereotype.Component;
  * <p>미구현 상태에서 켜면 매 요청마다 실패가 쌓이는 대신 애플리케이션 시작을 실패시킨다.
  */
 @Component
-@ConditionalOnProperty(prefix = "engine.jev", name = "enabled", havingValue = "true")
+@ConditionalOnActiveEngine("jev")
 public class JevEngine implements DecisionEngine {
 
     public JevEngine(JevEngineProperties properties) {
         if (!properties.hasApiKey()) {
             throw new IllegalStateException(
-                    "engine.jev.enabled=true but JEV_API_KEY is empty. Set it in .env or disable the Jev engine.");
+                    "jev is in engine.active but JEV_API_KEY is empty. Set it in .env or remove jev from engine.active.");
         }
         throw new IllegalStateException(
-                "Jev engine is not implemented yet (waiting for API spec). Set engine.jev.enabled=false.");
+                "Jev engine is not implemented yet (waiting for API spec). Remove jev from engine.active.");
     }
 
     @Override

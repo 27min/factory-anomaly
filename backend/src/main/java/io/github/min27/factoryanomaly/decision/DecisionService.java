@@ -32,6 +32,7 @@ public class DecisionService {
 
     /**
      * 이미 저장된 측정값을 엔진마다 판정하고 저장한다. 판정 하나하나가 별도 트랜잭션(save)이다.
+     * 엔진은 이름 순서로 순차 실행한다. 동시에 돌리면 엔진끼리 자원을 다퉈 응답시간 비교가 오염된다 (D-019).
      * 엔진이 예외를 던지면 그 엔진은 decision_failure에 기록하고 나머지 엔진은 계속한다 (D-013, D-017).
      */
     public List<Decision> decide(SensorReading reading, SensorState state) {
