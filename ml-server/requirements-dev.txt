@@ -5,3 +5,4 @@ seaborn==0.13.2
 jupyter==1.1.1
 ipykernel==7.3.0
 nbconvert==7.17.1
+imbalanced-learn==0.14.2  # 04_ml_training: SMOTE 비교용 (최종 모델은 class_weight라 런타임에는 불필요)
