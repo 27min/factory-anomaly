@@ -12,24 +12,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 측정값을 판정 엔진에 넘기고, 응답시간을 재서 엔진별 판정 결과를 저장한다. */
+/** 측정값을 판정 엔진에 넘기고, 응답시간을 재서 엔진별 판정 결과 또는 실패를 저장한다. */
 @Slf4j
 @Service
 public class DecisionService {
 
     private final List<DecisionEngine> engines;
     private final DecisionRepository decisionRepository;
+    private final DecisionFailureRepository failureRepository;
     private final Clock clock;
 
-    public DecisionService(List<DecisionEngine> engines, DecisionRepository decisionRepository, Clock clock) {
+    public DecisionService(List<DecisionEngine> engines, DecisionRepository decisionRepository,
+                           DecisionFailureRepository failureRepository, Clock clock) {
         this.engines = engines.stream().sorted(Comparator.comparing(DecisionEngine::name)).toList();
         this.decisionRepository = decisionRepository;
+        this.failureRepository = failureRepository;
         this.clock = clock;
     }
 
     /**
      * 이미 저장된 측정값을 엔진마다 판정하고 저장한다. 판정 하나하나가 별도 트랜잭션(save)이다.
-     * 엔진이 예외를 던지면 그 엔진의 판정만 빠지고 나머지는 계속한다 (D-013).
+     * 엔진이 예외를 던지면 그 엔진은 decision_failure에 기록하고 나머지 엔진은 계속한다 (D-013, D-017).
      */
     public List<Decision> decide(SensorReading reading, SensorState state) {
         List<Decision> saved = new ArrayList<>(engines.size());
@@ -39,11 +42,11 @@ public class DecisionService {
             try {
                 result = engine.decide(state);
             } catch (RuntimeException e) {
-                log.warn("Engine '{}' failed for reading {}", engine.name(), reading.getId(), e);
+                recordFailure(reading, engine, e, elapsedUs(start));
                 continue;
             }
             // 응답시간은 엔진 밖에서 같은 구간(decide 호출 전후)으로 잰다 (D-011)
-            long latencyUs = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
+            long latencyUs = elapsedUs(start);
 
             saved.add(decisionRepository.save(Decision.builder()
                     .reading(reading)
@@ -57,6 +60,27 @@ public class DecisionService {
                     .build()));
         }
         return saved;
+    }
+
+    private void recordFailure(SensorReading reading, DecisionEngine engine, RuntimeException e, long latencyUs) {
+        FailureReason reason = e instanceof EngineException ee ? ee.getReason() : FailureReason.UNEXPECTED;
+        if (reason == FailureReason.UNEXPECTED) {
+            log.error("Engine '{}' failed unexpectedly for reading {}", engine.name(), reading.getId(), e);
+        } else {
+            log.warn("Engine '{}' failed for reading {}: {} {}", engine.name(), reading.getId(), reason, e.getMessage());
+        }
+        failureRepository.save(DecisionFailure.builder()
+                .reading(reading)
+                .engine(engine.name())
+                .reason(reason)
+                .message(e.getMessage())
+                .latencyUs(latencyUs)
+                .failedAt(Instant.now(clock))
+                .build());
+    }
+
+    private static long elapsedUs(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNanos);
     }
 
     @Transactional(readOnly = true)

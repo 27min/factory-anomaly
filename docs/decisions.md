@@ -199,3 +199,25 @@
   요청마다 1건씩 판정하므로 동시성은 요청 단위로 얻는다.
 - **엔드포인트**: `POST /predict`, `GET /health`(모델 ID, 임계값, 피처 목록). 모델은 시작할 때 한 번 읽고, 없거나 깨졌으면 서버가 뜨지 않는다.
 - **테스트**: `ml-server/tests` (pytest). 저장된 모델로 test 2,000행을 판정해 노트북과 같은 혼동행렬(TP 57 / FP 0 / FN 11)이 나오는지 확인한다.
+
+## D-017. MlEngine: HTTP 클라이언트, 타임아웃, 실패 기록 (2026-10-03)
+
+- **HTTP 클라이언트**: `RestClient` + JDK HttpClient (선택지: RestClient / WebClient / HTTP Interface).
+  판정이 동기라(D-013) 동기 클라이언트가 구조에 맞는다. WebClient는 webflux 의존성이 추가되는데 결국 `.block()`으로 기다려야 하고,
+  HTTP Interface는 엔드포인트가 하나뿐이라 설정 코드가 오히려 늘어난다. Boot 4에서는 `spring-boot-starter-restclient`가 필요하다.
+- **타임아웃**: 연결 300ms / 응답 1s, `engine.ml.*`로 변경 가능 (선택지: 300ms·1s / 100ms·200ms / 1s·3s).
+  판정 자체는 약 3ms다. 장애가 나도 수집 API가 최악 1초 안에 응답하도록 상한을 두되, 첫 요청의 워밍업 지연이나 Rosetta 에뮬레이션으로 생기는
+  일시적 지연까지 실패로 세지 않을 여유를 둔다.
+- **재시도**: 하지 않는다. 동기 요청이라 재시도하면 지연이 배로 늘어나고, 한 번 실패한 판정은 실패로 기록해 실패율로 드러내는 편이 비교에 정직하다.
+- **실패 기록**: 별도 테이블 `decision_failure` (Flyway `V4`) (선택지: 별도 테이블 / decision에 status 컬럼 / 로그만). D-013의 미정 항목을 이것으로 정한다.
+  `(reading_id, engine, reason, message, latency_us, failed_at)`, `(reading_id, engine)` 유니크.
+  decision에는 유효한 판정만 남아 기존 제약(severity·confidence 범위)과 집계 SQL이 그대로이고, 벤치마크에서 엔진별 실패율과 실패까지 걸린 시간을 집계할 수 있다.
+  - `reason`: `TIMEOUT`(응답 대기 초과) / `CONNECTION`(서버 다운, 연결 시간 초과 포함) / `HTTP_ERROR`(4xx·5xx) /
+    `INVALID_RESPONSE`(형식 오류, 알 수 없는 유형, `DecisionResult` 불변식 위반) / `UNEXPECTED`(분류되지 않은 예외)
+  - 엔진은 이유를 분류한 `EngineException`을 던지고, 그 밖의 예외는 `UNEXPECTED`로 기록하고 ERROR 로그를 남긴다
+  - 연결 실패 메시지는 JDK HttpClient에서 `null`인 경우가 많아, 근본 원인 예외의 클래스 이름을 함께 남긴다 (예: `ClosedChannelException`)
+- **활성화**: `engine.ml.enabled=true`일 때만 Bean으로 등록한다 (기본 false). ml-server 없이 도는 기존 테스트와 로컬 실행에 영향을 주지 않기 위함이다.
+  엔진 선택·벤치마크 모드는 Phase 3 후반에 정식으로 설계한다.
+- **응답 검증**: ml-server 응답이 `DecisionResult` 불변식을 어기면(예: anomaly=true인데 category=NORMAL) 저장하지 않고 `INVALID_RESPONSE`로 기록한다.
+- **테스트**: JDK 내장 `HttpServer`로 ml-server를 흉내 내 정상 / 지연(TIMEOUT) / 서버 다운(CONNECTION) / 4xx·5xx / 잘못된 응답을 실제 네트워크로 확인한다.
+  `MlServerDownIntegrationTest`는 ML 엔진을 켠 채 비어 있는 포트를 가리키게 해, 수집 201 + 룰 판정 저장 + ML `CONNECTION` 실패 기록을 실제 DB로 확인한다.
