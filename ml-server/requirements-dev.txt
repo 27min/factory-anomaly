@@ -6,3 +6,5 @@ jupyter==1.1.1
 ipykernel==7.3.0
 nbconvert==7.17.1
 imbalanced-learn==0.14.2  # 04_ml_training: SMOTE 비교용 (최종 모델은 class_weight라 런타임에는 불필요)
+pytest==9.1.1
+httpx2==2.13.1  # FastAPI TestClient (httpx는 Starlette에서 deprecated)

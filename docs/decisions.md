@@ -181,3 +181,21 @@
   (선택지: 스크립트 생성 + 커밋 / 노트북에서 저장 / 빌드 시 학습). 같은 입력이면 같은 파일이 나온다 (MD5 일치 확인).
   피처·라벨 정의는 `app/features.py` 한 곳에 두고 노트북·학습 스크립트·추론 서버가 같이 쓴다.
 - **근거**: `ml-server/notebooks/04_ml_training.ipynb`
+
+## D-016. ML 추론 API (2026-10-03)
+
+- **요청**: 원본 센서값만 보낸다 — `productType`, `airTemp`, `processTemp`, `rotSpeed`, `torque`, `toolWear` (선택지: 원본만 / 원본 + 파생변수).
+  파생변수는 ml-server가 학습 때와 같은 `app/features.py`로 계산한다. 모델 입력을 만드는 코드가 한 곳뿐이라 학습·서빙 피처가 어긋날 수 없고,
+  모델이 피처를 바꿔도 backend는 그대로다. 검증 범위는 backend 수집 API와 같다 (D-009, 위반 시 422).
+- **응답**: ml-server가 임계값까지 적용해 `DecisionResult`와 같은 형태로 판정한다 (선택지: ml-server가 판정 / 확률만 반환하고 backend가 판정).
+  `anomaly`, `severity`, `category`, `confidence` + 디버깅용 `probabilities`(클래스별)와 `modelId`(모델 파일 SHA-256 앞 12자리).
+  임계값은 모델과 함께 정해지는 값(`model_meta.json`)이라, 재학습해도 backend를 고칠 필요가 없다.
+- **confidence**: 이상 여부 판정에 대한 확신도 — 고장 확률 p에 대해 anomaly면 p, 아니면 1 − p (선택지: 판정 확신도 / 선택한 유형의 확률).
+  유형별 확률은 `probabilities`로 따로 볼 수 있다.
+- **주의**: 정상 판정이어도 `severity`가 높을 수 있다 (test 정상 판정 중 최대 94.7, 임계값 95.4 바로 아래).
+  룰 엔진은 정상이면 항상 0이다. D-015의 "확률이 보정되지 않음"과 같은 문제로, Phase 4 알람 임계값에서 엔진별로 다룬다.
+- **예측 스레드**: OpenMP 스레드 1개로 제한한다 (`threadpoolctl`). 기본값은 행 1개를 예측할 때도 코어 수(8)만큼 스레드를 깨워
+  판정 1건이 약 24ms 걸렸고, 대부분이 스레드 동기화 비용이었다. 1스레드로 약 2.7ms (피처 계산 포함, HTTP 제외).
+  요청마다 1건씩 판정하므로 동시성은 요청 단위로 얻는다.
+- **엔드포인트**: `POST /predict`, `GET /health`(모델 ID, 임계값, 피처 목록). 모델은 시작할 때 한 번 읽고, 없거나 깨졌으면 서버가 뜨지 않는다.
+- **테스트**: `ml-server/tests` (pytest). 저장된 모델로 test 2,000행을 판정해 노트북과 같은 혼동행렬(TP 57 / FP 0 / FN 11)이 나오는지 확인한다.
