@@ -48,7 +48,7 @@ Spring Boot 백엔드 포트폴리오 프로젝트야.
 | DB | SQL Server 2022 (Docker) ※ 맥 M칩은 Docker Desktop의 Rosetta 에뮬레이션 사용 (`docs/decisions.md` D-002) |
 | ML 서버 | Python 3.11, FastAPI, scikit-learn / LightGBM |
 | 시뮬레이터 | Python (requests) |
-| 대시보드 | **미정** — Thymeleaf / React / Grafana 중 Phase 4 시작 전 결정 |
+| 대시보드 | Thymeleaf (`docs/decisions.md` D-020) |
 | 인프라 | Docker Compose |
 | 외부 API | Jev (TypeSafe AI) — early access 키 확보 시에만 연동 |
 
@@ -197,7 +197,7 @@ factory-anomaly/
 - **완료 기준**: 설정값만 바꿔 엔진 전환 가능, 모든 판정이 DB에 기록됨
 
 ### Phase 4 — 알람 + 대시보드 (4주차)
-- [ ] 대시보드 방식 결정 (Thymeleaf / React / Grafana)
+- [x] 대시보드 방식 결정 (Thymeleaf / React / Grafana)
 - [ ] AlertService: 심각도 임계값 초과 시 alert 생성 (같은 설비 연속 알람 억제 로직 고려)
 - [ ] 대시보드: 설비별 최근 상태, 알람 목록, 엔진별 판정 결과
 - [ ] `docker compose up` 한 줄로 전체 실행되게 정리
