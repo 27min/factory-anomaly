@@ -57,9 +57,10 @@ class MlServerDownIntegrationTest {
 
     @Test
     void ml_server가_죽어도_수집과_룰_판정은_성공하고_ML_실패가_기록된다() {
+        // 정상값: 이 테스트는 커밋되므로, 이상값을 보내면 실제 DB의 알람이 생기거나 기존 알람에 합쳐진다
         String body = """
                 {"equipmentCode":"EQ-04","productType":"L",
-                 "airTemp":298.9,"processTemp":309.0,"rotSpeed":1410,"torque":65.7,"toolWear":191}
+                 "airTemp":300,"processTemp":310,"rotSpeed":1500,"torque":40,"toolWear":100}
                 """;
 
         var result = mvc.post().uri("/api/readings").contentType(MediaType.APPLICATION_JSON).content(body).exchange();

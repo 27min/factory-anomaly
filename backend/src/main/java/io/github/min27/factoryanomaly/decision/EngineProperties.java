@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *
  * @param active  실행할 엔진 이름 목록. 여기 있는 엔진만 Bean으로 등록되고, 측정값마다 이름 순서로 순차 실행된다.
  *                벤치마크는 비교할 엔진을 모두 나열한다 (예: rule, ml)
- * @param primary 알람·대시보드의 기준 엔진 (Phase 4에서 사용). active에 포함되어야 한다
+ * @param primary 알람·대시보드의 기준 엔진 (D-021). active에 포함되어야 한다
  */
 @ConfigurationProperties("engine")
 public record EngineProperties(
