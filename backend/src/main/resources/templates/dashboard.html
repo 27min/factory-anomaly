@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>factory-anomaly 대시보드</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
+</head>
+<body>
+<header class="top">
+    <h1>factory-anomaly</h1>
+    <p class="meta">
+        대표 엔진 <strong th:text="${primaryEngine}">rule</strong>
+        · 실행 엔진 <span th:text="${#strings.listJoin(activeEngines, ', ')}">rule</span>
+        · <span th:text="|${refreshSeconds}초마다 갱신|">3초마다 갱신</span>
+    </p>
+</header>
+
+<main>
+    <!-- 설비 상태: 미해결 알람 → 알람, 최신 판정 이상 → 경고, 그 외 정상 (D-022) -->
+    <section id="equipment" class="panel" th:fragment="equipment"
+             hx-get="/dashboard/equipment" hx-swap="outerHTML"
+             th:attr="hx-trigger=|every ${refreshSeconds}s, alerts-changed from:body|">
+        <h2>설비 상태</h2>
+        <div class="cards">
+            <article th:each="unit : ${equipment}" class="card" th:classappend="${unit.state().cssClass()}">
+                <div class="card-head">
+                    <span class="code" th:text="${unit.code()}">EQ-01</span>
+                    <span class="badge" th:text="${unit.state().label()}">정상</span>
+                </div>
+                <div class="card-body">
+                    <div th:if="${!unit.alerts().isEmpty()}" class="alert-tags">
+                        <span th:each="a : ${unit.alerts()}" class="tag"
+                              th:text="|${a.category()} ×${a.occurrenceCount()}|">PWF ×3</span>
+                    </div>
+                    <div class="latest" th:if="${unit.latestCategory() != null}">
+                        최신 판정 <strong th:text="${unit.latestCategory()}">NORMAL</strong>
+                        <span th:if="${unit.latestSeverity() > 0}"
+                              th:text="|(${#numbers.formatDecimal(unit.latestSeverity(), 1, 1)})|">(90.0)</span>
+                    </div>
+                    <div class="time" th:if="${unit.lastReceivedAt() != null}"
+                         th:text="|수신 ${#temporals.format(unit.lastReceivedAt(), 'HH:mm:ss')}|">수신 12:00:00</div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <div class="columns">
+        <!-- 미해결 알람: 같은 설비·유형의 반복 발생은 횟수로 합쳐져 있다 (D-021) -->
+        <section id="alerts" class="panel" th:fragment="alerts"
+                 hx-get="/dashboard/alerts" hx-swap="outerHTML"
+                 th:attr="hx-trigger=|every ${refreshSeconds}s|">
+            <h2>미해결 알람 <span class="count" th:text="${alerts.size()}">0</span></h2>
+            <p class="empty" th:if="${alerts.isEmpty()}">미해결 알람이 없습니다.</p>
+            <div class="table-wrap" th:unless="${alerts.isEmpty()}">
+                <table>
+                    <thead>
+                    <tr><th>설비</th><th>유형</th><th class="num">횟수</th><th>최초</th><th>최근</th><th>상태</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${alerts}" th:classappend="${a.acknowledged()} ? 'acked'">
+                        <td th:text="${a.equipmentCode()}">EQ-01</td>
+                        <td><strong th:text="${a.category()}">PWF</strong></td>
+                        <td class="num" th:text="${a.occurrenceCount()}">1</td>
+                        <td th:text="${#temporals.format(a.createdAt(), 'HH:mm:ss')}">12:00:00</td>
+                        <td th:text="${#temporals.format(a.lastOccurredAt(), 'HH:mm:ss')}">12:00:00</td>
+                        <td th:text="${a.acknowledged()} ? '확인됨' : '신규'">신규</td>
+                        <td class="actions">
+                            <button type="button" th:unless="${a.acknowledged()}"
+                                    th:attr="hx-post=@{/dashboard/alerts/{id}/acknowledge(id=${a.id()})}"
+                                    hx-target="#alerts" hx-swap="outerHTML">확인</button>
+                            <button type="button" class="primary"
+                                    th:attr="hx-post=@{/dashboard/alerts/{id}/resolve(id=${a.id()})}"
+                                    hx-target="#alerts" hx-swap="outerHTML">해결</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 엔진별 판정: 최근 측정값마다 엔진 판정을 나란히 두고, 이상 여부가 엇갈리면 강조한다 -->
+        <section id="decisions" class="panel" th:fragment="decisions"
+                 hx-get="/dashboard/decisions" hx-swap="outerHTML"
+                 th:attr="hx-trigger=|every ${refreshSeconds}s|">
+            <h2>엔진별 판정</h2>
+            <div class="table-wrap">
+                <table class="summary">
+                    <caption th:text="|최근 측정값 ${comparison.windowSize()}건 기준 · 응답시간은 판정 성공 건|">최근 500건</caption>
+                    <thead>
+                    <tr><th>엔진</th><th class="num">판정</th><th class="num">이상</th><th class="num">실패</th>
+                        <th class="num">p50</th><th class="num">p95</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s : ${comparison.summaries()}">
+                        <td><strong th:text="${s.engine()}">rule</strong></td>
+                        <td class="num" th:text="${s.decisions()}">0</td>
+                        <td class="num" th:text="${s.anomalies()}">0</td>
+                        <td class="num" th:classappend="${s.failures() > 0} ? 'bad'" th:text="${s.failures()}">0</td>
+                        <td class="num" th:text="${s.p50()}">-</td>
+                        <td class="num" th:text="${s.p95()}">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-wrap">
+                <table class="rows">
+                    <thead>
+                    <tr>
+                        <th class="num">#</th><th>설비</th><th>수신</th><th>정답</th>
+                        <th th:each="e : ${comparison.engines()}" th:text="${e}">rule</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${comparison.rows()}" th:classappend="${r.disagreement()} ? 'disagree'">
+                        <td class="num" th:text="${r.readingId()}">1</td>
+                        <td th:text="${r.equipmentCode()}">EQ-01</td>
+                        <td th:text="${#temporals.format(r.receivedAt(), 'HH:mm:ss')}">12:00:00</td>
+                        <td th:text="${r.actualFailure() == null} ? '-' : (${r.actualFailure()} ? '고장' : '정상')"
+                            th:classappend="${r.actualFailure() == true} ? 'bad'">-</td>
+                        <td th:each="e : ${comparison.engines()}"
+                            th:with="c=${r.cells().get(e)}"
+                            th:classappend="${c != null and c.failed()} ? 'failed' : (${c != null and c.anomaly()} ? 'anomaly')">
+                            <th:block th:if="${c == null}">-</th:block>
+                            <th:block th:if="${c != null and c.failed()}">
+                                실패 <small th:text="${c.failureReason()}">TIMEOUT</small>
+                            </th:block>
+                            <th:block th:if="${c != null and !c.failed()}">
+                                <span th:text="${c.category()}">NORMAL</span>
+                                <small th:text="${c.latency()}">13 µs</small>
+                            </th:block>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>

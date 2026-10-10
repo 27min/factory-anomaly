@@ -43,3 +43,10 @@ alert:
   # 대표 엔진(engine.primary)의 판정이 anomaly이고 심각도가 이 값 이상이면 알람 (D-021)
   #   룰: 고장 조건(90)만 알람, TWF 경고(40)는 제외 / ML: 이상 판정이면 항상 95.4 이상이라 사실상 anomaly 기준
   min-severity: 50
+
+dashboard:
+  # http://localhost:8080/dashboard (D-022). 시간은 UTC로 저장하고 화면에서만 이 시간대로 보여준다
+  time-zone: Asia/Seoul
+  refresh: 3s
+  recent-rows: 20 # 엔진별 판정 표에 보여줄 최근 측정값 수
+  summary-window: 500 # 엔진별 요약(이상·실패 건수, 응답시간 p50/p95)을 계산할 최근 측정값 수

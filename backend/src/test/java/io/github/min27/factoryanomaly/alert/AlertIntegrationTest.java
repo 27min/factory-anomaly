@@ -53,7 +53,12 @@ class AlertIntegrationTest {
     @BeforeEach
     void resolveExistingAlerts() {
         eq = equipmentRepository.findByCode("EQ-05").orElseThrow();
-        jdbc.update("UPDATE alert SET status = 'RESOLVED' WHERE equipment_id = ?", eq.getId());
+        resolveAll();
+    }
+
+    private void resolveAll() {
+        jdbc.update("UPDATE alert SET status = 'RESOLVED', resolved_at = SYSUTCDATETIME()"
+                + " WHERE equipment_id = ? AND status <> 'RESOLVED'", eq.getId());
     }
 
     private long post(String body) {
@@ -98,7 +103,7 @@ class AlertIntegrationTest {
     @Test
     void 해결된_알람_뒤의_발생은_새_알람이_된다() {
         post(PWF);
-        jdbc.update("UPDATE alert SET status = 'RESOLVED' WHERE equipment_id = ?", eq.getId());
+        resolveAll();
 
         long again = post(PWF);
 

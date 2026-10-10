@@ -295,3 +295,34 @@
   `AlertIntegrationTest`(실제 DB: 3회 발생 → 알람 1건·횟수 3, TWF 경고는 알람 없음, 해결 후 새 알람, 유니크 인덱스).
   `MlServerDownIntegrationTest`는 커밋되는 테스트라 이상값을 보내면 실제 DB에 알람이 남으므로 정상값으로 바꿨다.
 - **미정**: 대표 엔진(예: ml)이 실패했을 때 룰 판정으로 대신 알람을 낼지(fallback). 지금은 알람 없음.
+
+## D-022. 대시보드 구성과 알람 처리 (2026-10-07)
+
+- **화면**: `/dashboard` 한 페이지 (`/`는 리다이렉트). 설비 상태 카드 5개 / 미해결 알람 목록 / 엔진별 판정.
+- **갱신 방식**: htmx 부분 갱신 (선택지: htmx / JSON API + 직접 짠 JS / 페이지 전체 새로고침 / SSE).
+  구역마다 Thymeleaf fragment(`dashboard :: equipment` 등)를 `every 3s`로 다시 받아 교체한다. 렌더링은 계속 서버가 하고(D-020), 직접 쓴 JS는 없다.
+  - SSE는 실시간이지만 초당 5건 수준에서는 폴링으로 충분하고, 이벤트 발행과 연결 관리 코드가 늘어난다.
+  - 알람을 확인·해결하면 응답 헤더 `HX-Trigger: alerts-changed`로 설비 카드 구역이 다음 폴링을 기다리지 않고 바로 갱신된다.
+  - 라이브러리: webjars `htmx.org` 2.0.11 + `webjars-locator-lite`. CDN 없이 Gradle로 버전을 고정해 오프라인·Docker에서도 동작한다.
+    최신판 4.0.0은 막 정식 출시된 메이저 버전으로 기본 동작(오류 응답 교체, 속성 상속)이 바뀌어 2.x 최신을 쓴다.
+- **설비 상태**: 알람 우선 (선택지: 알람 우선 / 최신 판정만).
+  미해결 알람이 있으면 알람 → 대표 엔진의 최신 판정이 이상이면 경고(예: TWF 경고) → 정상. 대표 엔진의 판정이 없으면 "판정 없음", 측정값이 없으면 "수신 없음".
+  데이터가 시계열이 아니라 최신 판정만 보면 매초 정상과 이상을 오간다. 사람이 해결할 때까지 알람 상태를 유지하는 것이 알람 억제(D-021)와 일관된다.
+- **엔진별 판정**: 표 + 요약 수치 (선택지: 표 + 요약 / + 차트).
+  - 최근 측정값 20건마다 엔진 판정(유형·응답시간, 실패면 이유)과 정답 라벨을 나란히 보여주고, 엔진끼리 이상 여부가 엇갈리면 행을 강조한다.
+  - 최근 500건 기준 엔진별 판정 수, 이상 수, 실패 수, 응답시간 p50/p95(nearest-rank, 판정 성공 건). 구간이 작아 애플리케이션에서 계산한다.
+    응답시간은 1ms 미만이면 µs, 그 이상이면 ms로 보여준다 (룰 수십 µs, ML 수 ms).
+  - 차트는 Phase 5 벤치마크 결과에서 의미가 더 크므로 그때 다시 본다.
+  - 열은 지금 실행 중인 엔진(`engine.active`)만 보여준다.
+- **알람 처리**: 상태 + 처리 시각 (선택지: 상태 + 시각 / 상태만). Flyway `V6`: `acknowledged_at`, `resolved_at`.
+  - 상태 전이: OPEN → ACKNOWLEDGED → RESOLVED, OPEN → RESOLVED. 그 밖의 전이는 `InvalidAlertTransitionException` → 409, 없는 알람은 404.
+    전이 규칙은 엔티티(`Alert.acknowledge/resolve`)에 두고, DB CHECK로 상태와 시각이 어긋나지 않게 한다 (`ck_alert_resolved_at` 등).
+  - 처리 시각이 있어 알람이 해결되기까지 걸린 시간을 집계할 수 있다. 인증이 없어 처리한 사람은 기록하지 않는다.
+  - 두 사람이 동시에 같은 알람을 해결하면 둘 다 성공하고 나중 시각이 남는다. 대시보드 단일 사용자 기준에서 허용한다.
+- **`@DynamicUpdate`**: 확인·해결은 바뀐 컬럼만 UPDATE한다. 전체 컬럼을 쓰면, 엔티티를 읽은 뒤 다른 요청이 `recordOccurrence`로
+  늘린 발생 횟수를 옛 값으로 덮어쓴다 (D-021의 UPDATE 방식과 엔티티 수정이 섞이는 지점).
+  `AlertConcurrentUpdateIntegrationTest`가 두 트랜잭션을 겹쳐 이 상황을 재현한다. `@DynamicUpdate`를 빼면 횟수가 2 → 1로 덮어써져 실패하는 것을 확인했다.
+- **조회 쿼리**: 설비 상태는 설비마다 최신 측정값 1건(`ix_sensor_reading_equipment_received`)과 대표 엔진 판정(`uq_decision_reading_engine`)을 읽는다.
+  설비 5대라 N+1이 문제가 되지 않는다. 미해결 알람 목록용 `ix_alert_status_last_occurred`를 V6에 추가했다.
+- **시간대**: 저장은 UTC(D-008), 화면은 `dashboard.time-zone`(기본 Asia/Seoul).
+- **메모**: Thymeleaf(SpEL) 표현식에서 `eq`는 비교 연산자 예약어라 반복 변수 이름으로 쓰면 "Iteration variable cannot be null" 오류가 난다.

@@ -1,5 +1,6 @@
 package io.github.min27.factoryanomaly.alert;
 
+import io.github.min27.factoryanomaly.common.AlertNotFoundException;
 import io.github.min27.factoryanomaly.decision.Decision;
 import io.github.min27.factoryanomaly.decision.EngineProperties;
 import io.github.min27.factoryanomaly.equipment.Equipment;
@@ -11,11 +12,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 대표 엔진의 판정으로 알람을 만들거나, 같은 설비·유형의 미해결 알람에 발생을 합친다 (D-021).
  * 다른 엔진의 판정은 비교용이라 알람을 내지 않는다. 엔진이 여러 개 돌아도 알람 기준은 하나다 (D-019).
+ * 알람의 확인·해결도 여기서 처리한다 (D-022).
  */
 @Slf4j
 @Service
@@ -73,5 +76,19 @@ public class AlertService {
         }
         alertRepository.saveAndFlush(Alert.open(decision, equipment, now));
         return Outcome.CREATED;
+    }
+
+    @Transactional
+    public Alert acknowledge(long id) {
+        Alert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException(id));
+        alert.acknowledge(Instant.now(clock));
+        return alert;
+    }
+
+    @Transactional
+    public Alert resolve(long id) {
+        Alert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException(id));
+        alert.resolve(Instant.now(clock));
+        return alert;
     }
 }

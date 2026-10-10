@@ -199,7 +199,7 @@ factory-anomaly/
 ### Phase 4 — 알람 + 대시보드 (4주차)
 - [x] 대시보드 방식 결정 (Thymeleaf / React / Grafana)
 - [x] AlertService: 심각도 임계값 초과 시 alert 생성 (같은 설비 연속 알람 억제 로직 고려)
-- [ ] 대시보드: 설비별 최근 상태, 알람 목록, 엔진별 판정 결과
+- [x] 대시보드: 설비별 최근 상태, 알람 목록, 엔진별 판정 결과
 - [ ] `docker compose up` 한 줄로 전체 실행되게 정리
 - **완료 기준**: 처음 보는 사람이 README만 보고 실행 가능
 

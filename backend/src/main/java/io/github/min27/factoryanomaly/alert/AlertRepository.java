@@ -3,7 +3,9 @@ package io.github.min27.factoryanomaly.alert;
 import io.github.min27.factoryanomaly.decision.FailureType;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,4 +31,7 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
 
     Optional<Alert> findByEquipmentIdAndCategoryAndStatusIn(Long equipmentId, FailureType category,
                                                             Collection<AlertStatus> statuses);
+
+    @EntityGraph(attributePaths = "equipment")
+    List<Alert> findByStatusInOrderByLastOccurredAtDesc(Collection<AlertStatus> statuses);
 }

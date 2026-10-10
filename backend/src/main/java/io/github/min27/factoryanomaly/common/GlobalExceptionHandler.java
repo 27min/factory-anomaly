@@ -32,6 +32,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(AlertNotFoundException.class)
+    ProblemDetail handleAlertNotFound(AlertNotFoundException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        problem.setTitle("Alert not found");
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidAlertTransitionException.class)
+    ProblemDetail handleInvalidAlertTransition(InvalidAlertTransitionException e) {
+        // 요청은 맞지만 알람의 현재 상태와 충돌하므로 409 (예: 다른 사람이 먼저 해결함)
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+        problem.setTitle("Invalid alert transition");
+        return problem;
+    }
+
     /** 기본 응답에 어떤 필드가 왜 틀렸는지 목록을 추가한다. */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
